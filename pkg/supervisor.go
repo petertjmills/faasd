@@ -57,8 +57,9 @@ type ServicePort struct {
 }
 
 type Mount struct {
-	Src  string
-	Dest string
+	Src	   string
+	Dest       string
+	readOnly   bool
 }
 
 type Supervisor struct {
@@ -151,11 +152,18 @@ func (s *Supervisor) Start(svcs []Service) error {
 		mounts := []specs.Mount{}
 		if len(svc.Mounts) > 0 {
 			for _, mnt := range svc.Mounts {
+				var options = []string{"rbind"}
+				if mnt.readOnly {
+					options = append(options, "ro")
+				} else {
+					options = append(options, "rw")
+				}			
+	
 				mounts = append(mounts, specs.Mount{
 					Source:      mnt.Src,
 					Destination: mnt.Dest,
 					Type:        "bind",
-					Options:     []string{"rbind", "rw"},
+					Options:     options,
 				})
 
 				// Only create directories, not files.
@@ -344,6 +352,7 @@ func ParseCompose(config *compose.Config) ([]Service, error) {
 			mounts = append(mounts, Mount{
 				Src:  v.Source,
 				Dest: v.Target,
+				readOnly: v.ReadOnly,
 			})
 		}
 
